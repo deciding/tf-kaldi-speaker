@@ -22,7 +22,7 @@ exp=$root/exp
 mfccdir=$root/mfcc
 vaddir=$root/mfcc
 
-stage=2
+stage=-1
 nj=4
 
 # The kaldi voxceleb egs directory
@@ -33,11 +33,11 @@ nj=4
 #musan_root=/home/heliang05/liuyi/data/musan
 #rirs_root=/home/heliang05/liuyi/data/RIRS_NOISES
 
-kaldi_voxceleb=/mnt/disks/hdd1-libri/workspace/kaldi/egs/voxceleb
+kaldi_voxceleb=/workspace/kaldi/egs/voxceleb
 voxceleb1_trials=$data/voxceleb_test/trials
-voxceleb1_root=/mnt/disks/hdd1-voxceleb/datasets/vox1
-voxceleb2_root=/mnt/disks/hdd1-voxceleb/datasets/vox2
-musan_root=/mnt/disks/hdd1-voxceleb/datasets/musan
+voxceleb1_root=/workspace/voxceleb/datasets/vox1
+voxceleb2_root=/workspace/voxceleb/datasets/vox2
+musan_root=/workspace/datasets/musan
 rirs_root=RIRS_NOISES
 #ln -s /mnt/disks/hdd1-voxceleb/datasets/RIRS_NOISES/ .
 
