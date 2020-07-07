@@ -16,25 +16,28 @@
 set -e
 
 #root=/home/heliang05/liuyi/voxceleb
-root=$PWD
+#root=$PWD
+
+# data root
+root=/workspace/voxceleb/kaldi/voxceleb/
 data=$root/data
 exp=$root/exp
 mfccdir=$root/mfcc
 vaddir=$root/mfcc
 
-stage=-1
+stage=10
 nj=4
 
 # The kaldi voxceleb egs directory
 #kaldi_voxceleb=/home/heliang05/liuyi/software/kaldi_gpu/egs/voxceleb
-#voxceleb1_trials=$data/voxceleb_test/trials
+#voxceleb1_trials=$data/voxceleb1_test/trials
 #voxceleb1_root=/home/heliang05/liuyi/data/voxceleb/voxceleb1
 #voxceleb2_root=/home/heliang05/liuyi/data/voxceleb/voxceleb2
 #musan_root=/home/heliang05/liuyi/data/musan
 #rirs_root=/home/heliang05/liuyi/data/RIRS_NOISES
 
 kaldi_voxceleb=/workspace/kaldi/egs/voxceleb
-voxceleb1_trials=$data/voxceleb_test/trials
+voxceleb1_trials=$data/voxceleb1_test/trials
 voxceleb1_root=/workspace/voxceleb/datasets/vox1
 voxceleb2_root=/workspace/voxceleb/datasets/vox2
 musan_root=/workspace/datasets/musan
@@ -361,7 +364,8 @@ echo
 fi
 
 
-nnetdir=$exp/xvector_nnet_tdnn_e2e_m0.1_linear_bn_1e-4
+#nnetdir=$exp/xvector_nnet_tdnn_e2e_m0.1_linear_bn_1e-4
+nnetdir=$exp/xvector_nnet_tdnn_amsoftmax_m0.20_linear_bn_1e-2
 checkpoint='last'
 
 if [ $stage -le 8 ]; then
@@ -372,9 +376,11 @@ if [ $stage -le 8 ]; then
 
   nnet/run_extract_embeddings.sh --cmd "$train_cmd" --nj 40 --use-gpu false --checkpoint $checkpoint --stage 0 \
     --chunk-size 10000 --normalize false --node "tdnn6_dense" \
-    $nnetdir $data/voxceleb_test $nnetdir/xvectors_voxceleb_test
+    $nnetdir $data/voxceleb1_test $nnetdir/xvectors_voxceleb_test
+  exit
 fi
 
+# Cos Sim 
 if [ $stage -le 9 ]; then
   # Cosine similarity
   mkdir -p $nnetdir/scores
@@ -399,7 +405,7 @@ if [ $stage -le 9 ]; then
   tail -n 1 $nnetdir/scores/scores_voxceleb_test.cos.result
 fi
 
-
+# PLDA
 if [ $stage -le 10 ]; then
   # Compute the mean vector for centering the evaluation xvectors.
   $train_cmd $nnetdir/xvectors_voxceleb_train/log/compute_mean.log \
@@ -421,12 +427,21 @@ if [ $stage -le 10 ]; then
 fi
 
 if [ $stage -le 11 ]; then
-  $train_cmd $nnetdir/scores/log/voxceleb_test_scoring.lda_cos.log \
-    ivector-compute-dot-products "cat '$voxceleb1_trials' | cut -d\  --fields=1,2 |" \
-    "ark:ivector-subtract-global-mean $nnetdir/xvectors_voxceleb_train/mean.vec scp:$nnetdir/xvectors_voxceleb_test/xvector.scp ark:- | transform-vec $nnetdir/xvectors_voxceleb_train/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
-    "ark:ivector-subtract-global-mean $nnetdir/xvectors_voxceleb_train/mean.vec scp:$nnetdir/xvectors_voxceleb_test/xvector.scp ark:- | transform-vec $nnetdir/xvectors_voxceleb_train/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
-    $nnetdir/scores/scores_voxceleb_test.lda_cos || exit 1;
+  ## LDA_COS
+  #$train_cmd $nnetdir/scores/log/voxceleb_test_scoring.lda_cos.log \
+  #  ivector-compute-dot-products "cat '$voxceleb1_trials' | cut -d\  --fields=1,2 |" \
+  #  "ark:ivector-subtract-global-mean $nnetdir/xvectors_voxceleb_train/mean.vec scp:$nnetdir/xvectors_voxceleb_test/xvector.scp ark:- | transform-vec $nnetdir/xvectors_voxceleb_train/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+  #  "ark:ivector-subtract-global-mean $nnetdir/xvectors_voxceleb_train/mean.vec scp:$nnetdir/xvectors_voxceleb_test/xvector.scp ark:- | transform-vec $nnetdir/xvectors_voxceleb_train/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+  #  $nnetdir/scores/scores_voxceleb_test.lda_cos || exit 1;
 
+  #eer=`compute-eer <(local/prepare_for_eer.py $voxceleb1_trials $nnetdir/scores/scores_voxceleb_test.lda_cos) 2> /dev/null`
+  #mindcf1=`sid/compute_min_dcf.py --c-miss 10 --p-target 0.01 $nnetdir/scores/scores_voxceleb_test.lda_cos $voxceleb1_trials 2> /dev/null`
+  #mindcf2=`sid/compute_min_dcf.py --p-target 0.001 $nnetdir/scores/scores_voxceleb_test.lda_cos $voxceleb1_trials 2> /dev/null`
+  #echo "EER: $eer%"
+  #echo "minDCF(p-target=0.01): $mindcf1"
+  #echo "minDCF(p-target=0.001): $mindcf2"
+
+  # PLDA
   $train_cmd $nnetdir/scores/log/voxceleb_test_scoring.log \
     ivector-plda-scoring --normalize-length=true \
     "ivector-copy-plda --smoothing=0.0 $nnetdir/xvectors_voxceleb_train/plda - |" \
@@ -434,19 +449,13 @@ if [ $stage -le 11 ]; then
     "ark:ivector-subtract-global-mean $nnetdir/xvectors_voxceleb_train/mean.vec scp:$nnetdir/xvectors_voxceleb_test/xvector.scp ark:- | transform-vec $nnetdir/xvectors_voxceleb_train/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
     "cat '$voxceleb1_trials' | cut -d\  --fields=1,2 |" $nnetdir/scores/scores_voxceleb_test.plda || exit 1;
 
-  eer=`compute-eer <(local/prepare_for_eer.py $voxceleb1_trials $nnetdir/scores/scores_voxceleb_test.lda_cos) 2> /dev/null`
-  mindcf1=`sid/compute_min_dcf.py --c-miss 10 --p-target 0.01 $nnetdir/scores/scores_voxceleb_test.lda_cos $voxceleb1_trials 2> /dev/null`
-  mindcf2=`sid/compute_min_dcf.py --p-target 0.001 $nnetdir/scores/scores_voxceleb_test.lda_cos $voxceleb1_trials 2> /dev/null`
-  echo "EER: $eer%"
-  echo "minDCF(p-target=0.01): $mindcf1"
-  echo "minDCF(p-target=0.001): $mindcf2"
-
   eer=`compute-eer <(local/prepare_for_eer.py $voxceleb1_trials $nnetdir/scores/scores_voxceleb_test.plda) 2> /dev/null`
   mindcf1=`sid/compute_min_dcf.py --c-miss 10 --p-target 0.01 $nnetdir/scores/scores_voxceleb_test.plda $voxceleb1_trials 2> /dev/null`
   mindcf2=`sid/compute_min_dcf.py --p-target 0.001 $nnetdir/scores/scores_voxceleb_test.plda $voxceleb1_trials 2> /dev/null`
   echo "EER: $eer%"
   echo "minDCF(p-target=0.01): $mindcf1"
   echo "minDCF(p-target=0.001): $mindcf2"
+  exit
 fi
 
 if [ $stage -le 12 ]; then
@@ -485,7 +494,7 @@ checkpoint='last'
 if [ $stage -le 14 ]; then
   nnet/run_extract_embeddings.sh --cmd "$train_cmd" --nj 40 --use-gpu false --checkpoint $checkpoint --stage 0 \
     --chunk-size 10000 --normalize false --node "output" \
-    $nnetdir $data/voxceleb_test $nnetdir/xvectors_voxceleb_test_cos
+    $nnetdir $data/voxceleb1_test $nnetdir/xvectors_voxceleb_test_cos
 fi
 
 if [ $stage -le 15 ]; then

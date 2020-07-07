@@ -1,9 +1,11 @@
 import tensorflow as tf
-import numpy as np
-from model.pooling import general_pooling, phone_pooling, sep_phone_pooling, sep_phone_pooling_noglobal, phone_pooling_noglobal
-from model.common import prelu, shape_list
+#import numpy as np
+from model.pooling import general_pooling
+#from model.pooling import sep_phone_pooling_noglobal, sep_phone_pooling, phone_pooling_noglobal, phone_pooling
+from model.common import prelu
+#from model.common import shape_list
 from collections import OrderedDict
-from six.moves import range
+#from six.moves import range
 # statistics_pooling, self_attention, ghost_vlad, ghost_vlad_wocenter, lde
 
 
