@@ -34,7 +34,8 @@ nnet_dir=$root/exp/xvector_nnet_tdnn_amsoftmax_m0.20_linear_bn_1e-2
 libritts_root=/workspace/datasets/raw_libri/ls_clean/
 
 #TODO
-stage=2
+stage=1
+#out_mode='spk' # 'utt' 'spk' 'single_spk'
 out_mode='utt' # 'utt' 'spk' 'single_spk'
 
 
@@ -68,15 +69,17 @@ if [ $stage -le 1 ]; then
   #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/fandeng $data/fandeng
   #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/kuangfei $data/kuangfei
   #local/cn_data_prep.sh /workspace/voxceleb/datasets/vcc2020_training $data/vcc2020
-  local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/jiawan $data/jiawan
-  exit
+  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/jiawan $data/jiawan
+  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/pinseng $data/pinseng
+  local/cn_data_prep.sh data/elon  $data/em
+  # exit
 fi
 
 #TODO
 #libritts_datasets=(libritts_train libritts_test)
 #libritts_datasets=(libritts_train)
 #libritts_datasets=(libritts_test)
-libritts_datasets=(jiawan)
+libritts_datasets=(em)
 
 #TODO
 #nj=40 # should be less than num of speakers
@@ -110,7 +113,7 @@ if [ $stage -le 2 ]; then
       $data/${name} $exp/make_vad_${name} ${vaddir}_${name}
     utils/fix_data_dir.sh $data/${name}
   done
-  #exit
+  exit
 fi
 
 # Tensorflow version
