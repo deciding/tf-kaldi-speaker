@@ -53,7 +53,8 @@ if __name__ == '__main__':
 
     with open(os.path.join(nnet_dir, "feature_dim"), "r") as f:
         dim = int(f.readline().strip())
-    trainer = Trainer(params, args.model_dir, dim, single_cpu=True)
+    #trainer = Trainer(params, args.model_dir, dim, single_cpu=True)
+    trainer = Trainer(params, args.model_dir, dim)
     trainer.build("predict")
 
     if args.rspecifier.rsplit(".", 1)[1] == "scp":
