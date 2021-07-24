@@ -12,6 +12,9 @@
 . ./path.sh
 set -e
 
+job_name=tmp
+infile=$1
+
 featmode='mfcc'
 root=/workspace/voxceleb/kaldi/voxceleb/
 #root=$PWD
@@ -23,21 +26,13 @@ fbankdir=$root/fbank
 vaddir=$root/mfcc
 
 
-# The trials file is downloaded by local/make_voxceleb1_v2.pl.
-#voxceleb1_trials=data/voxceleb1_test/trials
-#voxceleb1_root=/home/zining/workspace/datasets/raw_vox/vox1/
-#voxceleb2_root=/home/zining/workspace/datasets/raw_vox/vox2/
-#nnet_dir=exp/xvector_nnet_1a
 nnet_dir=$root/exp/xvector_nnet_tdnn_amsoftmax_m0.20_linear_bn_1e-2
-#musan_root=/home/zining/workspace/datasets/musan
-#libritts_root=/home/zining/workspace/datasets/raw_libri/libritts/ls_clean/
 libritts_root=/workspace/datasets/raw_libri/ls_clean/
 
 #TODO
 stage=1
 #out_mode='spk' # 'utt' 'spk' 'single_spk'
 out_mode='utt' # 'utt' 'spk' 'single_spk'
-
 
 if [ $stage -le 1 ]; then
   #TODO: both name and shell code
@@ -47,42 +42,13 @@ if [ $stage -le 1 ]; then
   # 2. foldername is spkid, wav name is spkid_uttid, this is for prepareforlibritts
   # 3. ids should be padded with same length
 
-  #local/libritts_data_prep.sh ${libritts_root} $data/libritts_train
-  #local/libritts_data_prep.sh ${libritts_root}train-clean-100 data/libritts_100
-  #local/libritts_data_prep.sh ${libritts_root}train-clean-360 data/libritts_360
-  #local/libritts_data_prep.sh ${libritts_root}test-clean data/libritts_test
-  #utils/combine_data.sh data/libritts_train data/libritts_100 data/libritts_360
-  #local/cn_data_prep.sh /home/armory_home/zining/workspace/datasets/mxdzt/Characters data/mxdzt
-  #local/cn_data_prep.sh /home/zining/workspace/datasets/multispeaker/voicebunny data/voicebunny
-  #local/cn_data_prep.sh /home/zining/workspace/datasets/vctk/VCTK-Corpus/vctk_data data/vctk
-  #local/cn_data_prep.sh data/toutiao data/toutiao
-  #local/cn_data_prep.sh /home/zining/workspace/datasets/tts_data/ljspeech data/ljspeech24k
-  #local/cn_data_prep.sh /home/zining/workspace/datasets/cn_dataset/aishell2 data/aishell2
-  #local/cn_data_prep.sh /home/zining/workspace/datasets/cn_dataset/shiyin data/shiyin
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/bushenglian $data/bushenglian
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/biaobei $data/biaobei
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/jingjing $data/jingjing
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/luotuo $data/luotuo
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/nvwang $data/nvwang
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/qingyun $data/qingyun
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/quanzhi $data/quanzhi
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/fandeng $data/fandeng
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/kuangfei $data/kuangfei
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/vcc2020_training $data/vcc2020
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/jiawan $data/jiawan
-  #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/pinseng $data/pinseng
-  #local/cn_data_prep.sh data/elon  $data/em
-  local/cn_data_prep.sh data/tmp  $data/tmp
-  #local/data_prep_one.sh data/global/1/Wave/1.wav  $data/global
-  # /workspace/voxceleb/kaldi/voxceleb/data
+  rm -rf $data/$job_name
+  local/data_prep_one.sh "$infile" $data/$job_name
   # exit
 fi
 
 #TODO
-#libritts_datasets=(libritts_train libritts_test)
-#libritts_datasets=(libritts_train)
-#libritts_datasets=(libritts_test)
-libritts_datasets=(tmp)
+libritts_datasets=($job_name)
 
 #TODO
 #nj=40 # should be less than num of speakers
@@ -125,49 +91,19 @@ if [ $stage -le 3 ]; then
   # Extract the embeddings
   for name in ${libritts_datasets[@]}; do
       nnet/run_extract_embeddings.sh --cmd "$train_cmd" --nj $nj --use-gpu false --checkpoint $checkpoint --stage 0 \
-        --chunk-size 10000 --normalize false --node "tdnn6_dense" \
+        --chunk-size 700 --normalize false --node "tdnn6_dense" \
         $nnet_dir $data/${name} \
         $nnet_dir/xvectors_${name}
   done
   #exit
 fi
 
-## Kaldi version
-#if [ $stage -le 3 ]; then
-#  # Extract x-vectors for centering, LDA, and PLDA training.
-#  for name in ${libritts_datasets[@]}; do
-#    sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj $nj \
-#      $nnet_dir data/${name} \
-#      $nnet_dir/xvectors_${name}
-#  done
-#  #exit
-#fi
-
 if [ $stage -le 4 ]; then
   # Compute the mean vector for centering the evaluation xvectors.
   # mean for all xvector
   $train_cmd $nnet_dir/xvectors_${libritts_datasets[0]}/log/compute_mean.log \
-    ivector-mean scp:$nnet_dir/xvectors_${libritts_datasets[0]}/xvector.scp \
-    $nnet_dir/xvectors_${libritts_datasets[0]}/mean.vec || exit 1;
-
-  ## TODO following needs to be comment out if PLDA is no need
-
-  ## This script uses LDA to decrease the dimensionality prior to PLDA.
-  ## ivector-compute-lda xvector_rx utt2spk_rx lda_transform_wx
-  #lda_dim=200
-  #$train_cmd $nnet_dir/xvectors_${libritts_datasets[0]}/log/lda.log \
-  #  ivector-compute-lda --total-covariance-factor=0.0 --dim=$lda_dim \
-  #  "ark:ivector-subtract-global-mean scp:$nnet_dir/xvectors_${libritts_datasets[0]}/xvector.scp ark:- |" \
-  #  ark:$data/${libritts_datasets[0]}/utt2spk $nnet_dir/xvectors_${libritts_datasets[0]}/transform.mat || exit 1;
-
-  ## Train the PLDA model.
-  ## ivecotr-compute-plda spk2utt_rx xvector_rw plda_wx
-  ## ivector-substract-global-mean [mean-rxfilename] xvector_rx xvector_wx
-  ## transform-vec transform_rx xvector_rx latent_wx
-  #$train_cmd $nnet_dir/xvectors_${libritts_datasets[0]}/log/plda.log \
-  #  ivector-compute-plda ark:$data/${libritts_datasets[0]}/spk2utt \
-  #  "ark:ivector-subtract-global-mean scp:$nnet_dir/xvectors_${libritts_datasets[0]}/xvector.scp ark:- | transform-vec $nnet_dir/xvectors_${libritts_datasets[0]}/transform.mat ark:- ark:- | ivector-normalize-length ark:-  ark:- |" \
-  #  $nnet_dir/xvectors_${libritts_datasets[0]}/plda || exit 1;
+     ivector-mean scp:$nnet_dir/xvectors_${libritts_datasets[0]}/xvector.scp \
+     $nnet_dir/xvectors_${libritts_datasets[0]}/mean.vec || exit 1;
 fi
 
 if [ $stage -le 5 ]; then

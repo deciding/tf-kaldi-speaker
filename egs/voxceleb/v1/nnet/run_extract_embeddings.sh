@@ -69,6 +69,9 @@ if [ $stage -le 0 ]; then
       nnet/wrap/extract_wrapper.sh --gpuid -1 --env $env --min-chunk-size $min_chunk_size --chunk-size $chunk_size \
         --normalize $normalize --node $node \
         "$nnetdir" "$feat" "ark:| copy-vector ark:- ark,scp:${dir}/xvector.JOB.ark,${dir}/xvector.JOB.scp"
+    #nnet/wrap/extract_wrapper.sh --gpuid -1 --env $env --min-chunk-size $min_chunk_size --chunk-size $chunk_size \
+    #  --normalize $normalize --node $node \
+    #  "$nnetdir" "$feat" "ark:| copy-vector ark:- ark,scp:${dir}/xvector.1.ark,${dir}/xvector.1.scp"
   fi
 fi
 

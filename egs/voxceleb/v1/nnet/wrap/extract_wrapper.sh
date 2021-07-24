@@ -37,6 +37,8 @@ fi
 export PYTHONPATH=`pwd`/../../:$PYTHONPATH
 echo $PYTHONPATH
 
+echo python nnet/lib/extract.py --gpu $gpuid --node $node --min-chunk-size $min_chunk_size --chunk-size $chunk_size $cmdopt_norm\
+         "$nnetdir" "$feat" "$dir"
 python nnet/lib/extract.py --gpu $gpuid --node $node --min-chunk-size $min_chunk_size --chunk-size $chunk_size $cmdopt_norm\
          "$nnetdir" "$feat" "$dir"
 #deactivate

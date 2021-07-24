@@ -62,6 +62,8 @@ if __name__ == '__main__':
         sys.exit("The rspecifier must be ark or input pipe")
 
     fp_out = open_or_fd(args.wspecifier, "wb")
+    # import pdb;pdb.set_trace()
+    # args.rspecifier=args.rspecifier.replace('JOB', '1')
     for index, (key, feature) in enumerate(read_mat_ark(args.rspecifier)):
         if feature.shape[0] < args.min_chunk_size:
             tf.logging.info("[INFO] Key %s length too short, %d < %d, skip." % (key, feature.shape[0], args.min_chunk_size))
@@ -72,7 +74,7 @@ if __name__ == '__main__':
             num_chunks = int(np.ceil(float(feature.shape[0] - args.chunk_size) / (args.chunk_size / 2))) + 1
             tf.logging.info("[INFO] Key %s length %d > %d, split to %d segments." % (key, feature.shape[0], args.chunk_size, num_chunks))
             for i in range(num_chunks):
-                start = i * (args.chunk_size / 2)
+                start = int(i * (args.chunk_size / 2))
                 this_chunk_size = args.chunk_size if feature.shape[0] - start > args.chunk_size else feature.shape[0] - start
                 feature_length.append(this_chunk_size)
                 feature_array.append(feature[start:start+this_chunk_size])
@@ -88,9 +90,11 @@ if __name__ == '__main__':
         else:
             tf.logging.info("[INFO] Key %s length %d." % (key, feature.shape[0]))
             embedding = trainer.predict(feature)
+        tf.logging.info("[INFO] Key %s finished predicting" % (key))
 
         if args.normalize:
             embedding /= np.sqrt(np.sum(np.square(embedding)))
         write_vec_flt(fp_out, embedding, key=key)
+        tf.logging.info("[INFO] Key %s finished writing" % (key))
     fp_out.close()
     trainer.close()
