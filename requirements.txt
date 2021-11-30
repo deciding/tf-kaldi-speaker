@@ -1,3 +1,5 @@
 #sudo apt-get install ffmpeg
 kaldiio
 tqdm
+sklearn
+tensorflow==1.15.0

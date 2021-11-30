@@ -13,7 +13,8 @@
 set -e
 
 featmode='mfcc'
-root=/workspace/voxceleb/kaldi/voxceleb/
+#root=/workspace/voxceleb/kaldi/voxceleb/
+root=result
 #root=$PWD
 data=$root/data
 exp=$root/exp
@@ -31,13 +32,25 @@ vaddir=$root/mfcc
 nnet_dir=$root/exp/xvector_nnet_tdnn_amsoftmax_m0.20_linear_bn_1e-2
 #musan_root=/home/zining/workspace/datasets/musan
 #libritts_root=/home/zining/workspace/datasets/raw_libri/libritts/ls_clean/
-libritts_root=/workspace/datasets/raw_libri/ls_clean/
+#libritts_root=/workspace/datasets/raw_libri/ls_clean/
 
 #TODO
 stage=1
 #out_mode='spk' # 'utt' 'spk' 'single_spk'
 out_mode='utt' # 'utt' 'spk' 'single_spk'
 
+
+kaldi_voxceleb=/workspace/ssd2/PVoice/kaldi/egs/voxceleb
+if [ $stage -le -1 ]; then
+    # link the directories
+    rm -fr utils steps sid conf local
+    ln -s $kaldi_voxceleb/v2/utils ./
+    ln -s $kaldi_voxceleb/v2/steps ./
+    ln -s $kaldi_voxceleb/v2/sid ./
+    ln -s $kaldi_voxceleb/v2/conf ./
+    ln -s $kaldi_voxceleb/v2/local ./
+    exit
+fi
 
 if [ $stage -le 1 ]; then
   #TODO: both name and shell code
@@ -71,8 +84,8 @@ if [ $stage -le 1 ]; then
   #local/cn_data_prep.sh /workspace/voxceleb/datasets/vcc2020_training $data/vcc2020
   #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/jiawan $data/jiawan
   #local/cn_data_prep.sh /workspace/voxceleb/datasets/cn_tts_data/pinseng $data/pinseng
-  #local/cn_data_prep.sh data/elon  $data/em
-  local/cn_data_prep.sh data/tmp  $data/tmp
+  local/cn_data_prep.sh data/elon  $data/elon
+  #local/cn_data_prep.sh data/tmp  $data/tmp
   #local/data_prep_one.sh data/global/1/Wave/1.wav  $data/global
   # /workspace/voxceleb/kaldi/voxceleb/data
   # exit
@@ -82,7 +95,7 @@ fi
 #libritts_datasets=(libritts_train libritts_test)
 #libritts_datasets=(libritts_train)
 #libritts_datasets=(libritts_test)
-libritts_datasets=(tmp)
+libritts_datasets=(elon)
 
 #TODO
 #nj=40 # should be less than num of speakers
